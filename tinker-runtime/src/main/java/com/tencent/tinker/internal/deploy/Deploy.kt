@@ -188,9 +188,9 @@ class TinkerDeployService : Service() {
                 ?.deployCallback
                 ?.apply {
                     onTaskComplete(
-                        Tinker.TaskSummary(
-                            error = error,
-                            events = events,
+                        Tinker.TaskSummary.Deploy(
+                            error,
+                            events,
                         )
                     )
                 }

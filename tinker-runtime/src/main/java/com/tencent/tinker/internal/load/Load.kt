@@ -23,6 +23,7 @@ import com.tencent.tinker.internal.util.currentProcess
 import com.tencent.tinker.internal.util.debugLog
 import com.tencent.tinker.internal.util.expected
 import com.tencent.tinker.internal.util.infoLog
+import com.tencent.tinker.internal.util.isInDeployProcess
 import com.tencent.tinker.internal.util.traceE
 import com.tencent.tinker.internal.util.traceS
 import com.tencent.tinker.internal.util.traceTask
@@ -189,7 +190,7 @@ private fun Application.loadInternal(
     hardening: Boolean,
     skipValidating: Boolean,
     rawPatchManager: RawPatchManager = RawPatchManager.with(this),
-): ClassLoader? {
+): String? {
     val rawPatch = traceE("load.raw_patch.acquire") {
         rawPatchManager.acquire() ?: run {
             infoLog(TAG) {
@@ -201,8 +202,8 @@ private fun Application.loadInternal(
     infoLog(TAG) {
         "Raw patch \"${rawPatch.version}\" is acquired, try loading."
     }
-    try {
-        return loadWith(
+    val classLoader = try {
+        loadWith(
             hardening = hardening,
             rawPatch = rawPatch,
             validator = if (skipValidating) null else ValidatorImpl,
@@ -211,6 +212,10 @@ private fun Application.loadInternal(
         rawPatchManager.requestUnavailable(rawPatch.version)
         throw throwable
     }
+    if (classLoader == null) {
+        return null
+    }
+    return rawPatch.version
 }
 
 /**
@@ -220,23 +225,23 @@ private fun Application.loadInternal(
  * function returns null.
  */
 @NonDeployProcessOnly
-internal fun Application.load(
+private fun Application.load(
     hardening: Boolean,
     skipValidating: Boolean,
-    callback: Tinker.Callback?,
+    callback: Tinker.Callback<Tinker.TaskSummary.Load>?,
 ): ClassLoader? {
     infoLog(TAG) {
         "Try loading patch in process \"${currentProcess}\"."
     }
     val (pair, events) = traceTask("load") {
         try {
-            val classLoader = expected<Tinker.Error.Load, ClassLoader?>("load patch") {
+            val version = expected<Tinker.Error.Load, String?>("load patch") {
                 loadInternal(
                     hardening = hardening,
                     skipValidating = skipValidating,
                 )
             }
-            classLoader to null
+            version to null
         } catch (error: Tinker.Error) {
             if (error.type in errorTypeShouldBeThrown) {
                 throw error
@@ -244,14 +249,41 @@ internal fun Application.load(
             null to error
         }
     }
-    val (classLoader, error) = pair
+    val (version, error) = pair
     callback?.apply {
         onTaskComplete(
-            Tinker.TaskSummary(
-                error = error,
-                events = events,
+            Tinker.TaskSummary.Load(
+                error,
+                events,
+                version,
             )
         )
     }
     return classLoader
+}
+
+internal fun Tinker.App.load(
+    hardening: Boolean,
+    skipValidating: Boolean,
+): Tinker.AppLike? {
+    val appLikeClassLoader = if (!isInDeployProcess) {
+        load(
+            hardening = hardening,
+            skipValidating = skipValidating,
+            callback = loadCallback,
+        ) ?: classLoader
+    } else {
+        classLoader
+    }
+    // Do not catch any throwable while creating delegate application class. It should be fail-fast if user
+    // provides an invalid delegate application class name.
+    return appLikeClassName
+        ?.let {
+            appLikeClassLoader.loadClass(it)
+        }
+        ?.getConstructor(Application::class.java)
+        ?.newInstance(this)
+        ?.let {
+            it as Tinker.AppLike
+        }
 }
