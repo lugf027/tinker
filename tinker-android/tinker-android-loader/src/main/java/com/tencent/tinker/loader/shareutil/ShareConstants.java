@@ -151,6 +151,7 @@ public class ShareConstants {
     public static final int TINKER_ARKHOT_MASK = 0x08;
     public static final int TINKER_DEX_AND_LIBRARY     = TINKER_DEX_MASK | TINKER_NATIVE_LIBRARY_MASK | TINKER_ARKHOT_MASK;
     public static final int TINKER_ENABLE_ALL          = TINKER_DEX_MASK | TINKER_NATIVE_LIBRARY_MASK | TINKER_RESOURCE_MASK | TINKER_ARKHOT_MASK;
+    public static final int TINKER_FULL_DISABLE = 0x10;
 
     //load error code
     public static final int ERROR_LOAD_OK                                      = 0;

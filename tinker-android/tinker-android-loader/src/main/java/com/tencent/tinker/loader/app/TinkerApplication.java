@@ -181,6 +181,9 @@ public abstract class TinkerApplication extends Application {
     @Override
     protected void attachBaseContext(Context base) {
         super.attachBaseContext(base);
+        if ((tinkerFlags & ShareConstants.TINKER_FULL_DISABLE) != 0) {
+            return;
+        }
         final long applicationStartElapsedTime = SystemClock.elapsedRealtime();
         final long applicationStartMillisTime = System.currentTimeMillis();
         Thread.setDefaultUncaughtExceptionHandler(new TinkerUncaughtHandler(this));
