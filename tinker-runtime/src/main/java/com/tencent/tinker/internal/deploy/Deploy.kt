@@ -184,7 +184,7 @@ class TinkerDeployService : Service() {
                 }
             }
             application
-                .let { it as? Tinker.App }
+                .let { it as? Tinker.AppConfig }
                 ?.deployCallback
                 ?.apply {
                     onTaskComplete(
