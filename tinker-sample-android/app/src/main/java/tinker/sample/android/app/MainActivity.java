@@ -21,9 +21,9 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Typeface;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.Gravity;
@@ -31,9 +31,16 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
 
 import com.tencent.tinker.lib.library.TinkerLoadLibrary;
 import com.tencent.tinker.lib.tinker.Tinker;
@@ -48,6 +55,44 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "Tinker.MainActivity";
 
     private TextView mTvMessage = null;
+
+    private final ActivityResultLauncher<String[]> mPickPatchLauncher =
+            registerForActivityResult(new ActivityResultContracts.OpenDocument(), uri -> {
+                if (uri == null) {
+                    Log.w(TAG, "file picker cancelled");
+                    return;
+                }
+                String patchPath = copyPatchToPrivateDir(uri);
+                if (patchPath == null) {
+                    Toast.makeText(this, "Failed to copy patch file", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                Log.i(TAG, "loading patch from: " + patchPath);
+                TinkerInstaller.onReceiveUpgradePatch(getApplicationContext(), patchPath);
+            });
+
+    /**
+     * Copy the URI-based patch file into the app's private cache directory,
+     * so Tinker can access it without external-storage permissions on Android 10+.
+     */
+    private String copyPatchToPrivateDir(Uri uri) {
+        try {
+            File destFile = new File(getCacheDir(), "patch_signed_7zip.apk");
+            try (InputStream in = getContentResolver().openInputStream(uri);
+                 FileOutputStream out = new FileOutputStream(destFile)) {
+                if (in == null) return null;
+                byte[] buf = new byte[4096];
+                int len;
+                while ((len = in.read(buf)) != -1) {
+                    out.write(buf, 0, len);
+                }
+            }
+            return destFile.getAbsolutePath();
+        } catch (Exception e) {
+            Log.e(TAG, "copyPatchToPrivateDir failed", e);
+            return null;
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,7 +114,7 @@ public class MainActivity extends AppCompatActivity {
         loadPatchButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                TinkerInstaller.onReceiveUpgradePatch(getApplicationContext(), Environment.getExternalStorageDirectory().getAbsolutePath() + "/patch_signed_7zip.apk");
+                mPickPatchLauncher.launch(new String[]{"*/*"});
             }
         });
 

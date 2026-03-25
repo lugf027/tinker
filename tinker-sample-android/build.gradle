@@ -2,8 +2,10 @@
 buildscript {
     repositories {
         mavenLocal()
-        jcenter()
+        mavenCentral()
         google()
+        maven { url 'https://maven.aliyun.com/repository/public' } // 国内镜像加速
+
     }
     dependencies {
         if (project.hasProperty('GRADLE_3') && GRADLE_3.equalsIgnoreCase('TRUE')) {
@@ -25,8 +27,9 @@ buildscript {
 allprojects {
     repositories {
         mavenLocal()
-        jcenter()
+        mavenCentral()
         google()
+        maven { url 'https://maven.aliyun.com/repository/public' } // 国内镜像加速
     }
 }
 
