@@ -4,7 +4,7 @@ dependencies {
     if (is_gradle_3()) {
         implementation fileTree(dir: 'libs', include: ['*.jar'])
         testImplementation 'junit:junit:4.12'
-        implementation "androidx.appcompat:appcompat:1.1.0"
+        implementation "androidx.appcompat:appcompat:1.3.0"
         api("com.tencent.tinker:tinker-android-lib:${TINKER_VERSION}") { changing = true }
 
         // Maven local cannot handle transist dependencies.
@@ -22,7 +22,7 @@ dependencies {
     } else {
         compile fileTree(dir: 'libs', include: ['*.jar'])
         testCompile 'junit:junit:4.12'
-        compile "androidx.appcompat:appcompat:1.1.0"
+        compile "androidx.appcompat:appcompat:1.3.0"
         compile("com.tencent.tinker:tinker-android-lib:${TINKER_VERSION}") { changing = true }
         provided("com.tencent.tinker:tinker-android-anno:${TINKER_VERSION}") { changing = true }
         provided("com.tencent.tinker:tinker-android-anno-support:${TINKER_VERSION}") { changing = true }
@@ -51,7 +51,7 @@ def gitSha() {
 def javaVersion = JavaVersion.VERSION_1_8
 
 android {
-    compileSdkVersion 28
+    compileSdkVersion 30
     buildToolsVersion '28.0.3'
 
     compileOptions {
